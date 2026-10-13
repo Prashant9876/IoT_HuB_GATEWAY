@@ -23,12 +23,10 @@ FARM_ID = config.FARM_ID
 
 MQTT_ACK_TOPIC_PREFIX = config.MQTT_ACK_TOPIC_PREFIX
 
-PING_TOPIC = f"farm/{FARM_ID}/TimeSync"
+PING_TOPIC = f"farm/IoT_HuB/TimeSync"
 PING_INTERVAL = 60  # seconds
 
-TIMEZONE_NAME = config.TIMEZONE_NAME # default UTC
-
-FARM_IDS_RELOAD_TIME = config.REDIS_FARMIDS_RSET_TIME  # seconds, how often to refresh allowed farm IDs from Redis
+stop_event = threading.Event()
 
 last_refresh = 0
 
@@ -36,7 +34,7 @@ mqtt_client = None
 connected = False
 
 def check_topic(table_name):
-    if table_name is in ["THC", "WLD", "EMD", "LSD", "NSD"]:
+    if table_name  in ["THC", "WLD", "EMD", "LSD", "NSD"]:
         return f"farm/{FARM_ID}/sensor"
     else:
         print(f"⚠️ Unknown table name: {table_name}")
@@ -52,13 +50,13 @@ def on_connect(client, userdata, flags, rc):
         connected = True
         print("MQTT connected")
         # Subscribe to all allowed farms
-        if config.ALLOWED_FARMS:  # make sure it's not empty
-            for farm_id in config.ALLOWED_FARMS.keys():  # iterate over dict keys (farm IDs)
-                topic = f"farm/{farm_id}/#"
-                client.subscribe(topic)
-                print("Subscribed to:", topic)
-        else:
-            print("⚠️ ALLOWED_FARMS is empty. No subscriptions made.")
+        # if config.ALLOWED_FARMS:  # make sure it's not empty
+        #     for farm_id in config.ALLOWED_FARMS.keys():  # iterate over dict keys (farm IDs)
+        #         topic = f"farm/{farm_id}/#"
+        #         client.subscribe(topic)
+        #         print("Subscribed to:", topic)
+        # else:
+        #     print("⚠️ ALLOWED_FARMS is empty. No subscriptions made.")
     else:
         print(" MQTT connection failed with code:", rc)
 
@@ -202,6 +200,7 @@ def Mqtt_data_uploader():
             if not rows:
                 print(f"{table_name}: no pending data")
                 continue
+            
             for row in rows:
                 payload_data = dict(row)
                 payload_data["Packet_Id"] = f"{table_name}-{row['id']}"
@@ -239,10 +238,10 @@ def Mqtt_data_uploader():
                     break
                 time.sleep(0.1)
         except Exception as error:
-        print(f"Uploader error in {table_name}: {error}")
+            print(f"Uploader error in {table_name}: {error}")
 
     table_index = (table_index + 1) % len(Tables)
-            time.sleep(0.1)
+    time.sleep(0.1)
 
 
 
@@ -259,9 +258,9 @@ def heartbeat():
             payload = {
                     "type": "heartbeat",
                     "farm_id": config.FARM_ID,
-                    "utc_time": utc_now.isoformat().replace("+00:00", "Z"),
-                    "ist_time": ist_now.isoformat(),
-                    "local_time": local_now.isoformat(),
+                    "utc_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                    "ist_time": datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(),
+                    "local_time": datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S"),
                     "epoch": int(time.time()),
                     "device_id": config.DEVICE_ID                    
                 }

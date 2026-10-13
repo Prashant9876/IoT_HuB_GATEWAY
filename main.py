@@ -2,7 +2,7 @@ import threading
 from database.sql_database import initialize_database, list_available_tables, Tables
 from cloud.network_manager import check_network, has_ip_address, Internet_connected
 # from protocol_ingestor.protocol_ingestor import start_ingestor
-# from cloud.mqtt_uploader import start_mqtt_connection
+from cloud.mqtt_uploader import start_mqtt_connection
 
 
 
